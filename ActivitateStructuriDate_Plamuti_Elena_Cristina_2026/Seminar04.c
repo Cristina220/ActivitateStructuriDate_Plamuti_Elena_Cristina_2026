@@ -78,8 +78,14 @@ void afisareListaMasini(Nod* cap) {
 	}
 }
 
-void adaugaLaInceputInLista(/*lista de masini*/ Masina masinaNoua) {
+void adaugaLaInceputInLista(Nod** lista, Masina masinaNoua) {
 	//adauga la inceputul listei o noua masina pe care o primim ca parametru
+	Nod* nou = malloc(sizeof(Nod));
+	if (nou != NULL) {
+		nou->info = masinaNoua;
+		nou->next = *lista;
+		*lista = nou;
+	}
 }
 
 void* citireListaMasiniDinFisier(const char* numeFisier) {
@@ -122,22 +128,92 @@ float calculeazaPretMediu(Nod* lista) {
 		return 0;
 }
 
-void stergeMasiniDinSeria(/*lista masini*/ char serieCautata) {
-	//sterge toate masinile din lista care au seria primita ca parametru.
-	//tratati situatia ca masina se afla si pe prima pozitie, si pe ultima pozitie
+void stergeMasiniDinSeria(Nod**lista, char serieCautata) {
+	
+	while (*lista!=NULL && (*lista)->info.serie == serieCautata) {
+		Nod* gasit = *lista;
+		*lista = (*lista)->next;
+
+		free(gasit->info.model);
+		free(gasit->info.numeSofer);
+		free(gasit);
+	}
+
+	if (*lista == NULL)
+		return;
+	else {
+		Nod* ramas = *lista;
+		while (ramas != NULL && ramas->next != NULL) {
+			if (ramas->next->info.serie == serieCautata) {
+				Nod* gasit = ramas->next;
+
+				ramas->next = gasit->next;
+
+				free(gasit->info.model);
+				free(gasit->info.numeSofer);
+				free(gasit);
+			}
+			else {
+				ramas = ramas->next;
+			}
+		}
+	}
 }
 
-float calculeazaPretulMasinilorUnuiSofer(/*lista masini*/ const char* numeSofer) {
-	//calculeaza pretul tuturor masinilor unui sofer.
+float calculeazaPretulMasinilorUnuiSofer(Nod* lista, const char* numeSofer) {
+	float sumaTotala = 0;
+
+	while (lista != NULL) {
+
+		if (strcmp(lista->info.numeSofer, numeSofer) == 0) {
+
+			sumaTotala += lista->info.pret;
+		}
+
+		lista = lista->next;
+	}
+
+	return sumaTotala;
+
 	return 0;
 }
 
 int main() {
 	Nod* lista = citireListaMasiniDinFisier("masini.txt");
+	printf("--- Lista initiala din fisier ---\n");
+	afisareListaMasini(lista);
+
+	Masina masinaNoua;
+	masinaNoua.id = 999;
+	masinaNoua.nrUsi = 2;
+	masinaNoua.pret = 50000.0;
+	masinaNoua.serie = 'Z';
+
+	const char* textModel = "Porsche";
+	masinaNoua.model = malloc(strlen(textModel) + 1);
+	strcpy_s(masinaNoua.model, strlen(textModel) + 1, textModel);
+
+	const char* textSofer = "Mihai";
+	masinaNoua.numeSofer = malloc(strlen(textSofer) + 1);
+	strcpy_s(masinaNoua.numeSofer, strlen(textSofer) + 1, textSofer);
+
+	adaugaLaInceputInLista(&lista, masinaNoua);
+
+	printf("\n--- Lista DUPA adaugarea la inceput ---\n");
 	afisareListaMasini(lista);
 	
 	float pretMediu=calculeazaPretMediu(lista);
 	printf("\nPretul mediu este: %f", pretMediu);
+
+	const char* soferCautat = "Gigel";
+	float pretSofer = calculeazaPretulMasinilorUnuiSofer(lista, soferCautat);
+	printf("\nPret total pentru soferul %s este %.2f\n", soferCautat, pretSofer);
+
+	char serieDeSters = 'A';
+	printf("\nStergem masinile cu seria %c", serieDeSters);
+	stergeMasiniDinSeria(&lista, serieDeSters);
+	printf("\n---Lista dupa stergere---\n");
+	afisareListaMasini(lista);
 
 	dezalocareListaMasini(&lista);
 	printf("\nDupa dezalocare:\n");
